@@ -1,5 +1,5 @@
 <div align="center">
-  <img width="150px" src="https://github.com/mangalorg/saturno/assets/62389790/30988cde-f2be-451c-85d0-0f5c743f8f3e">
+  <img width="150px" alt="a logo depicting saturn planet" src="https://github.com/mangalorg/saturno/assets/62389790/2c032b54-8260-494b-83cb-f780c9ccc71e">
   <h1>Saturno ♄</h1>
 </div>
 
