@@ -1,7 +1,5 @@
 type = "lua"
-
-[provider]
-id = "saturno-mangapill"
+id = "mangapill"
 name = "Mangapill"
 description = "Mangapill scraper"
 version = "0.1.0"
