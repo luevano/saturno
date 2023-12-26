@@ -14,7 +14,6 @@ local USER_AGENT = "libmangal"
 ---@param query string
 ---@return string
 local function query_to_search_url(query)
-	query = sdk.strings.replace_all(query, " ", "+")
 	query = query:lower()
 	query = sdk.strings.trim_space(query)
 
