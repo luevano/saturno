@@ -1,5 +1,5 @@
 <div align="center">
-  <img width="150px" alt="a logo depicting saturn planet" src="https://github.com/mangalorg/saturno/assets/62389790/2c032b54-8260-494b-83cb-f780c9ccc71e">
+  <img width="150px" alt="a logo depicting saturn planet" src="saturn.png">
   <h1>Saturno</h1>
 </div>
 
@@ -8,3 +8,7 @@
 A collection of lua scripts for [luaprovider](https://github.com/luevano/luaprovider)
 
 **Note**: This is a fork of [mangalorg/saturno](https://github.com/mangalorg/saturno).
+
+## Credits
+
+Saturn logo: [Planet icons created by Freepik - Flaticon](https://www.flaticon.com/free-icons/planet "planet icons")
