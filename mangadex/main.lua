@@ -148,10 +148,17 @@ function VolumeChapters(volume)
   end
 
   for _, c in ipairs(json.data) do
+    local chapterNumber = c.attributes.chapter
+    -- sometimes there is no chapter title, related to the scanlation group
+    local title = c.attributes.title
+    if title == "" then
+      title = "Chapter " .. chapterNumber
+    end
+
     local chapter = {
-      title = c.attributes.title,
+      title = title,
       url = BASE_URL .. "/chapter/" .. c.id,
-      number = c.attributes.chapter,
+      number = chapterNumber,
     }
 
     table.insert(chapters, chapter)
