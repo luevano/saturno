@@ -11,10 +11,10 @@ A collection of lua scripts for [luaprovider](https://github.com/luevano/luaprov
 
 ## Providers
 
-At this point, only MangaSee is unique to these providers, and only because it requires to make clicks with the headless browser. But these can be used as examples to create other providers that are not yet implemented in [mangoprovider](https://github.com/luevano/luaprovider).
+Currently, all providers are already implemented in [mangoprovider](https://github.com/luevano/luaprovider) (and included in [mangal](https://github.com/luevano/mangal)), where the Mangadex provider has more features. Use these providers as examples for creating new quick providers.
 
-- [mangadex](mangadex/main.lua) - As an example, minimal functionality, better implemented in `mangoprovider`s.
-- [mangapill](mangapill/main.lua) - As an example, implemented in `mangoprovider`s.
+- [mangadex](mangadex/main.lua)
+- [mangapill](mangapill/main.lua)
 - [mangasee](mangasee/main.lua)
 
 ## Credits

@@ -1,6 +1,7 @@
+---@diagnostic disable: duplicate-doc-alias
 ---@alias Manga { id: string, title: string, url: string?, cover: string?, banner: string?, anilist_search: string?, [any]: any }
 ---@alias Volume { number: number, [any]: any }
----@alias Chapter { title: string, url: string?, number: number?, [any]: any }
+---@alias Chapter { title: string, url: string?, number: number?, date: string?, scanlation_group: string?, [any]: any }
 ---@alias Page { url: string, headers: table<string, string>?, cookies: table<string, string>?, extension: string?}
 
 local sdk = require("sdk")
@@ -98,14 +99,19 @@ function MangaVolumes(manga)
 
   local json = sdk.encoding.json.decode(res:body())
 
+  local noneVolume = nil
   local volumes = {}
   for _, v in pairs(json.volumes) do
-    local volume = {
-      number = tonumber(v.volume),
-      -- anything else can be passed down and will only be seen by this script
-      -- manga_url = manga.url,
-    }
-    table.insert(volumes, volume)
+    if v.volume ~= "none" then
+      local volume = {
+        number = tonumber(v.volume),
+        -- anything else can be passed down and will only be seen by this script
+        -- manga_url = manga.url,
+      }
+      table.insert(volumes, volume)
+    else
+      noneVolume = { number = 0 }
+    end
   end
 
   -- json.volumes is not a list, so it is ordered by its hash or whatever, need to sort
@@ -113,15 +119,24 @@ function MangaVolumes(manga)
     return a.number < b.number
   end)
 
+  -- Add the "un-volumed" at the end
+  if noneVolume ~= nil then
+    table.insert(volumes, noneVolume)
+  end
+
   return volumes
 end
 
 ---@param volume Volume
 ---@return Chapter[]
 function VolumeChapters(volume)
+  local volumeNumber = "none"
+  if volume.number ~= 0 then
+    volumeNumber = volume.number
+  end
   local params = sdk.urls.values()
   params:set("manga", volume.manga.id)
-  params:set("volume[]", volume.number)
+  params:set("volume[]", volumeNumber)
   params:set("limit", 100)
   params:set("translatedLanguage[]", LANG)
   params:set("order[chapter]", "desc")
@@ -129,6 +144,8 @@ function VolumeChapters(volume)
   params:add("contentRating[]", "suggestive")
   params:add("contentRating[]", "erotica")
   params:add("contentRating[]", "pornographic")
+  params:add("includes[]", "scanlation_group")
+  params:add("includes[]", "user")
 
   local url = BASE_API_URL .. "/chapter?" .. params:string()
 
@@ -154,11 +171,35 @@ function VolumeChapters(volume)
     if title == "" then
       title = "Chapter " .. chapterNumber
     end
+    local date = sdk.strings.split(c.attributes.publishAt, "T")[1]
+
+    local scanlator = nil
+    for _, r in pairs(c.relationships) do
+      if r.type == "scanlation_group" then
+        scanlator = r.attributes.name
+        break
+      end
+    end
+
+    if scanlator == nil then
+      for _, r in pairs(c.relationships) do
+        if r.type == "user" then
+          scanlator = r.attributes.username
+          break
+        end
+      end
+    end
+
+    if scanlator == nil then
+      scanlator = "Mangadex"
+    end
 
     local chapter = {
       title = title,
       url = BASE_URL .. "/chapter/" .. c.id,
       number = chapterNumber,
+      date = date,
+      scanlation_group = scanlator,
     }
 
     table.insert(chapters, chapter)

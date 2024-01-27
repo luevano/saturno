@@ -1,6 +1,7 @@
+---@diagnostic disable: duplicate-doc-alias
 ---@alias Manga { id: string, title: string, url: string?, cover: string?, banner: string?, anilist_search: string?, [any]: any }
 ---@alias Volume { number: number, [any]: any }
----@alias Chapter { title: string, url: string?, number: number?, [any]: any }
+---@alias Chapter { title: string, url: string?, number: number?, date: string?, scanlation_group: string?, [any]: any }
 ---@alias Page { url: string, headers: table<string, string>?, cookies: table<string, string>?, extension: string?}
 
 local sdk = require("sdk")
@@ -101,6 +102,9 @@ function VolumeChapters(volume)
       title = title,
       url = BASE_URL .. href,
       number = number,
+      -- mangapill doesn't provide dates let luaprovider generate today's date
+      date = "",
+      scanlation_group = "Mangapill",
     }
 
     table.insert(chapters, chapter)

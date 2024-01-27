@@ -1,6 +1,7 @@
+---@diagnostic disable: duplicate-doc-alias
 ---@alias Manga { id: string, title: string, url: string?, cover: string?, banner: string?, anilist_search: string?, [any]: any }
 ---@alias Volume { number: number, [any]: any }
----@alias Chapter { title: string, url: string?, number: number?, [any]: any }
+---@alias Chapter { title: string, url: string?, number: number?, date: string?, scanlation_group: string?, [any]: any }
 ---@alias Page { url: string, headers: table<string, string>?, cookies: table<string, string>?, extension: string?}
 
 local sdk = require("sdk")
@@ -33,7 +34,7 @@ function SearchMangas(query)
   local mangas = {}
 
   local selector =
-    "div.row > div.col-md-8.order-md-1.order-12 > div.ng-scope > div.top-15.ng-scope > div.row"
+  "div.row > div.col-md-8.order-md-1.order-12 > div.ng-scope > div.top-15.ng-scope > div.row"
 
   html:find(selector):each(function(selection)
     -- the href could be taken from either the title div or the href div
@@ -74,7 +75,6 @@ end
 function VolumeChapters(volume)
   local page = browser:page(volume.manga_url)
 
-  -- TODO: need to test with a manga that doesn't need to click this button (has few chapters)
   local showAllElem = page:element(".ShowAllChapters")
   if showAllElem ~= nil then
     showAllElem:click()
@@ -85,17 +85,22 @@ function VolumeChapters(volume)
 
   html:find(".ChapterLink"):each(function(selection)
     -- the title is really nasty
-    local title = selection:find('span'):first():text()
+    local title = selection:find("span"):first():text()
     title = sdk.strings.replace_all(title, "\t", "")
     title = sdk.strings.replace_all(title, "\n", " ")
     title = sdk.strings.trim_space(title)
     local href = selection:attr_or("href", "")
     local number = sdk.strings.split(title, " ")[2]
 
+    local rawDate = sdk.strings.split(selection:find("span.float-right"):text(), "/")
+    local date = sdk.strings.join({rawDate[3], rawDate[1], rawDate[2]}, "-")
+
     local chapter = {
       title = title,
       url = BASE_URL .. href,
       number = number,
+      date = date,
+      scanlation_group = "MangaSee",
     }
 
     table.insert(chapters, chapter)
