@@ -165,6 +165,11 @@ function VolumeChapters(volume)
   end
 
   for _, c in ipairs(json.data) do
+    -- ignore undownloadable chapters
+    if c.attributes.externalUrl ~= nil then
+      goto continue
+    end
+
     local chapterNumber = c.attributes.chapter
     -- sometimes there is no chapter title, related to the scanlation group
     local title = c.attributes.title
@@ -203,6 +208,7 @@ function VolumeChapters(volume)
     }
 
     table.insert(chapters, chapter)
+      ::continue::
   end
 
   return sdk.util.reverse(chapters)
