@@ -1,15 +1,28 @@
 ---@diagnostic disable: duplicate-doc-alias
----@alias Manga { id: string, title: string, url: string?, cover: string?, banner: string?, anilist_search: string?, [any]: any }
+---@alias Metadata { english_title: string?, romaji_title: string?, native_title: string?, synonyms: string[]?, community_score: number?, summary: string?, cover_image: string?, banner_image: string?, tag_list: string[]?, genre_list: string[]?, character_list: string[]?, author_list: string[]?, artist_list: string[]?, translator_list: string[]?, letterer_list: string[]?, date_start: string?, date_end: string?, provider_publisher: string?, publication_status: string?, publication_format: string?, country_of_origin: string?, chapter_count: number?, extra_notes: string?, source_url: string?, provider_id: string?, provider_id_code: string? }
+---@alias Manga { id: string, title: string, url: string?, cover: string?, banner: string?, metadata: Metadata?, [any]: any }
 ---@alias Volume { number: number, [any]: any }
----@alias Chapter { title: string, url: string?, number: number?, date: string?, scanlation_group: string?, [any]: any }
----@alias Page { url: string, headers: table<string, string>?, cookies: table<string, string>?, extension: string?}
+---@alias Chapter { title: string, url: string?, number: number?, date: string?, scanlation_group: string?, unavailable: string?, [any]: any }
+---@alias Page { url: string, headers: table<string, string>?, cookies: table<string, string>?, extension: string? }
 
 local sdk = require("sdk")
 
 local http = sdk.http
 
 local BASE_URL = "https://mangapill.com"
-local USER_AGENT = "libmangal"
+
+-- luaprovider sends its user agent by default
+---@param url string
+---@return table
+local function get_html(url)
+  local res = http.request(http.METHOD_GET, url):send()
+
+  if res:status() ~= http.STATUS_OK then
+    error("GET " .. url .. ": " .. res:status())
+  end
+
+  return sdk.html.parse(res:body())
+end
 
 ---@param query string
 ---@return string
@@ -30,15 +43,7 @@ end
 function SearchMangas(query)
   local url = query_to_search_url(query)
 
-  local req = http.request(http.METHOD_GET, url)
-  req:header("User-Agent", USER_AGENT)
-  local res = req:send()
-
-  if res:status() ~= http.STATUS_OK then
-    error(res:status())
-  end
-
-  local html = sdk.html.parse(res:body())
+  local html = get_html(url)
 
   local mangas = {}
 
@@ -53,7 +58,6 @@ function SearchMangas(query)
 
     local manga = {
       title = title,
-      anilist_search = title,
       url = BASE_URL .. href,
       cover = cover,
       id = id,
@@ -80,15 +84,7 @@ end
 ---@param volume Volume
 ---@return Chapter[]
 function VolumeChapters(volume)
-  local req = http.request(http.METHOD_GET, volume.manga_url)
-  req:header("User-Agent", USER_AGENT)
-  local res = req:send()
-
-  if res:status() ~= http.STATUS_OK then
-    error(res:status())
-  end
-
-  local html = sdk.html.parse(res:body())
+  local html = get_html(volume.manga_url)
 
   local chapters = {}
 
@@ -96,7 +92,7 @@ function VolumeChapters(volume)
   html:find(selector):each(function(selection)
     local title = sdk.strings.trim_space(selection:text())
     local href = selection:attr_or("href", "")
-    local number = sdk.strings.split(title, " ")[2]
+    local number = tonumber(sdk.strings.split(title, " ")[2])
 
     local chapter = {
       title = title,
@@ -116,15 +112,7 @@ end
 ---@param chapter Chapter
 ---@return Page[]
 function ChapterPages(chapter)
-  local req = http.request(http.METHOD_GET, chapter.url)
-  req:header("User-Agent", USER_AGENT)
-  local res = req:send()
-
-  if res:status() ~= http.STATUS_OK then
-    error(res:status())
-  end
-
-  local html = sdk.html.parse(res:body())
+  local html = get_html(chapter.url)
 
   local pages = {}
   local selector = "picture img"
