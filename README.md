@@ -15,7 +15,7 @@ Currently, all providers are already implemented in [mangoprovider](https://gith
 
 - [mangadex](mangadex/main.lua)
 - [mangapill](mangapill/main.lua)
-- [mangasee](mangasee/main.lua)
+- [mangasee](mangasee/main.lua) (Weeb Central since MangaSee shut down)
 
 ## Credits
 

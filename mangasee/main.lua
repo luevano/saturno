@@ -5,54 +5,75 @@
 ---@alias Chapter { title: string, url: string?, number: number?, date: string?, scanlation_group: string?, unavailable: string?, [any]: any }
 ---@alias Page { url: string, headers: table<string, string>?, cookies: table<string, string>?, extension: string? }
 
+-- MangaSee shut down and moved to Weeb Central, the id stays so existing setups keep working.
+
 local sdk = require("sdk")
-local browser = sdk.headless.browser()
 
-local BASE_URL = "https://mangasee123.com"
+local http = sdk.http
 
----@param query string
+local BASE_URL = "https://weebcentral.com"
+
+-- luaprovider sends its user agent by default
+---@param url string
+---@return table
+local function get_html(url)
+  local res = http.request(http.METHOD_GET, url):send()
+
+  if res:status() ~= http.STATUS_OK then
+    error("GET " .. url .. ": " .. res:status())
+  end
+
+  return sdk.html.parse(res:body())
+end
+
+---@param href string
 ---@return string
-local function query_to_search_url(query)
-  query = query:lower()
-  query = sdk.strings.trim_space(query)
+local function absolute(href)
+  if sdk.strings.has_prefix(href, "/") then
+    return BASE_URL .. href
+  end
+  return href
+end
 
-  local params = sdk.urls.values()
-  params:set("sort", "s")
-  params:set("desc", "false")
-  params:set("name", query)
-
-  return BASE_URL .. "/search/?" .. params:string()
+-- the path segment after the given one, e.g. the id after "series"
+---@param url string
+---@param segment string
+---@return string
+local function path_after(url, segment)
+  local parts = sdk.strings.split(url, "/")
+  for i, part in ipairs(parts) do
+    if part == segment then
+      return parts[i + 1]
+    end
+  end
+  error("no " .. segment .. " id in " .. url)
 end
 
 ---@param query string
 ---@return Manga[]
 function SearchMangas(query)
-  local url = query_to_search_url(query)
+  local params = sdk.urls.values()
+  params:set("text", sdk.strings.trim_space(query))
+  params:set("sort", "Best Match")
+  params:set("order", "Descending")
+  params:set("official", "Any")
+  params:set("anime", "Any")
+  params:set("adult", "Any")
+  params:set("display_mode", "Full Display")
 
-  local page = browser:page(url)
-  local html = sdk.html.parse(page:html())
+  local html = get_html(BASE_URL .. "/search/data?" .. params:string())
 
   local mangas = {}
+  html:find("article.bg-base-300"):each(function(selection)
+    local link = selection:find('section:nth-child(2) a[href*="/series/"]'):first()
+    local url = absolute(link:attr_or("href", ""))
 
-  local selector =
-  "div.row > div.col-md-8.order-md-1.order-12 > div.ng-scope > div.top-15.ng-scope > div.row"
-
-  html:find(selector):each(function(selection)
-    -- the href could be taken from either the title div or the href div
-    local title = selection:find("div.col-md-10.col-8 > a.SeriesName.ng-binding"):text()
-    local href = selection:find("div.col-md-2.col-4 > a.SeriesName"):attr_or("href", "")
-    local cover = selection:find("div.col-md-2.col-4 > a.SeriesName > img"):attr_or("src", "")
-    -- there is really no id
-    local id = sdk.strings.split(href, "/")[3]
-
-    local manga = {
-      title = title,
-      url = BASE_URL .. href,
-      cover = cover,
-      id = id,
-    }
-
-    table.insert(mangas, manga)
+    table.insert(mangas, {
+      title = sdk.strings.trim_space(link:text()),
+      url = url,
+      cover = selection:find("picture img"):first():attr_or("src", ""),
+      id = path_after(url, "series"),
+    })
   end)
 
   return mangas
@@ -61,70 +82,67 @@ end
 ---@param manga Manga
 ---@return Volume[]
 function MangaVolumes(manga)
-  -- mangasee does not provide volumes
+  -- weeb central does not provide volumes
   return {
     {
       number = 1,
-      manga_url = manga.url,
     },
   }
+end
+
+-- prologues go before chapter 1, e.g. "Prologue 3" is 0.03; without a number luaprovider puts the
+-- chapter right after the previous one
+---@param title string
+---@return number?
+local function chapter_number(title)
+  local words = sdk.strings.split(title, " ")
+  local number = tonumber(words[#words])
+  if number ~= nil and words[1] == "Prologue" then
+    return number / 100
+  end
+  return number
 end
 
 ---@param volume Volume
 ---@return Chapter[]
 function VolumeChapters(volume)
-  local page = browser:page(volume.manga_url)
-
-  local showAllElem = page:element(".ShowAllChapters")
-  if showAllElem ~= nil then
-    showAllElem:click()
-  end
-  local html = sdk.html.parse(page:html())
+  -- the series page only shows the latest chapters
+  local html = get_html(BASE_URL .. "/series/" .. volume.manga.id .. "/full-chapter-list")
 
   local chapters = {}
+  html:find('a[href*="/chapters/"]'):each(function(selection)
+    local title = sdk.strings.trim_space(selection:find("span.grow > span"):first():text())
+    local url = absolute(selection:attr_or("href", ""))
+    local datetime = selection:find("time"):attr_or("datetime", "")
 
-  html:find(".ChapterLink"):each(function(selection)
-    -- the title is really nasty
-    local title = selection:find("span"):first():text()
-    title = sdk.strings.replace_all(title, "\t", "")
-    title = sdk.strings.replace_all(title, "\n", " ")
-    title = sdk.strings.trim_space(title)
-    local href = selection:attr_or("href", "")
-    local number = tonumber(sdk.strings.split(title, " ")[2])
-
-    local rawDate = sdk.strings.split(selection:find("span.float-right"):text(), "/")
-    local date = sdk.strings.join({rawDate[3], rawDate[1], rawDate[2]}, "-")
-
-    local chapter = {
+    table.insert(chapters, {
+      id = path_after(url, "chapters"),
       title = title,
-      url = BASE_URL .. href,
-      number = number,
-      date = date,
-      scanlation_group = "MangaSee",
-    }
-
-    table.insert(chapters, chapter)
+      url = url,
+      number = chapter_number(title),
+      date = sdk.strings.split(datetime, "T")[1],
+      scanlation_group = "Weeb Central",
+    })
   end)
 
+  -- the list is newest first
   return sdk.util.reverse(chapters)
 end
 
 ---@param chapter Chapter
 ---@return Page[]
 function ChapterPages(chapter)
-  local page = browser:page(chapter.url)
-
-  -- display all images in "long strip"
-  page:element(".DesktopNav > div.row > div:nth-child(4) > button"):click()
-  local html = sdk.html.parse(page:html())
+  -- the chapter page loads its images from here
+  local url = BASE_URL .. "/chapters/" .. chapter.id .. "/images?is_prev=False&current_page=1&reading_style=long_strip"
+  local html = get_html(url)
 
   local pages = {}
-  html:find(".ImageGallery > div.ng-scope > div.ng-scope > img.img-fluid.HasGap"):each(function(selection)
-    local url = selection:attr_or("src", "")
-    local p = {
-      url = url,
-    }
-    table.insert(pages, p)
+  html:find('img[alt^="Page"]'):each(function(selection)
+    local src = selection:attr_or("src", "")
+    table.insert(pages, {
+      url = src,
+      extension = src:match("%.%w+$"),
+    })
   end)
 
   return pages
