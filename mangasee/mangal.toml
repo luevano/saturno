@@ -1,6 +1,0 @@
-type = "lua"
-id = "mangasee"
-name = "MangaSee"
-description = "Weeb Central (formerly MangaSee) scraper"
-version = "0.3.0"
-website = "https://weebcentral.com/"

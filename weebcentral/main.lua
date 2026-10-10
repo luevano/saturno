@@ -5,7 +5,7 @@
 ---@alias Chapter { title: string, url: string?, number: number?, date: string?, scanlation_group: string?, unavailable: string?, [any]: any }
 ---@alias Page { url: string, headers: table<string, string>?, cookies: table<string, string>?, extension: string? }
 
--- MangaSee shut down and moved to Weeb Central, the id stays so existing setups keep working.
+-- MangaSee shut down and moved to Weeb Central, its old id is in the history (mangal.toml).
 
 local sdk = require("sdk")
 
