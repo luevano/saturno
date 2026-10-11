@@ -30,11 +30,8 @@ local STATUSES = {
 local function get_json(url)
   local req = http.request(http.METHOD_GET, url)
   req:header("User-Agent", USER_AGENT)
-  local res = req:send()
-
-  if res:status() ~= http.STATUS_OK then
-    error("GET " .. url .. ": " .. res:status())
-  end
+  -- check raises an error mangal can tell apart (not found, rate limited)
+  local res = req:send():check()
 
   return sdk.encoding.json.decode(res:body())
 end

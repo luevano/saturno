@@ -15,11 +15,8 @@ local BASE_URL = "https://mangapill.com"
 ---@param url string
 ---@return table
 local function get_html(url)
-  local res = http.request(http.METHOD_GET, url):send()
-
-  if res:status() ~= http.STATUS_OK then
-    error("GET " .. url .. ": " .. res:status())
-  end
+  -- check raises an error mangal can tell apart (not found, rate limited)
+  local res = http.request(http.METHOD_GET, url):send():check()
 
   return sdk.html.parse(res:body())
 end
