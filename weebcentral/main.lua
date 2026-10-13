@@ -32,18 +32,18 @@ local function absolute(href)
   return href
 end
 
--- the path segment after the given one, e.g. the id after "series"
+-- the path segment after the given one, e.g. the id after "series"; nil if there's none
 ---@param url string
 ---@param segment string
----@return string
+---@return string?
 local function path_after(url, segment)
   local parts = sdk.strings.split(url, "/")
   for i, part in ipairs(parts) do
-    if part == segment then
+    if part == segment and parts[i + 1] ~= "" then
       return parts[i + 1]
     end
   end
-  error("no " .. segment .. " id in " .. url)
+  return nil
 end
 
 ---@param query string
@@ -64,13 +64,17 @@ function SearchMangas(query)
   html:find("article.bg-base-300"):each(function(selection)
     local link = selection:find('section:nth-child(2) a[href*="/series/"]'):first()
     local url = absolute(link:attr_or("href", ""))
+    local id = path_after(url, "series")
 
-    table.insert(mangas, {
-      title = sdk.strings.trim_space(link:text()),
-      url = url,
-      cover = selection:find("picture img"):first():attr_or("src", ""),
-      id = path_after(url, "series"),
-    })
+    -- one odd result shouldn't fail the search
+    if id ~= nil then
+      table.insert(mangas, {
+        title = sdk.strings.trim_space(link:text()),
+        url = url,
+        cover = selection:find("picture img"):first():attr_or("src", ""),
+        id = id,
+      })
+    end
   end)
 
   return mangas
@@ -111,15 +115,18 @@ function VolumeChapters(volume)
     local title = sdk.strings.trim_space(selection:find("span.grow > span"):first():text())
     local url = absolute(selection:attr_or("href", ""))
     local datetime = selection:find("time"):attr_or("datetime", "")
+    local id = path_after(url, "chapters")
 
-    table.insert(chapters, {
-      id = path_after(url, "chapters"),
-      title = title,
-      url = url,
-      number = chapter_number(title),
-      date = sdk.strings.split(datetime, "T")[1],
-      scanlation_group = "Weeb Central",
-    })
+    if id ~= nil then
+      table.insert(chapters, {
+        id = id,
+        title = title,
+        url = url,
+        number = chapter_number(title),
+        date = sdk.strings.split(datetime, "T")[1],
+        scanlation_group = "Weeb Central",
+      })
+    end
   end)
 
   -- the list is newest first

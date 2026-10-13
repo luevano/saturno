@@ -51,16 +51,18 @@ function SearchMangas(query)
     local title = selection:find("div a div.leading-tight"):text()
     local href = selection:find("div a:first-child"):attr_or("href", "")
     local cover = selection:find("img"):attr_or("data-src", "")
+    -- e.g. /manga/123/name
     local id = sdk.strings.split(href, "/")[3]
 
-    local manga = {
-      title = title,
-      url = BASE_URL .. href,
-      cover = cover,
-      id = id,
-    }
-
-    table.insert(mangas, manga)
+    -- one odd result shouldn't fail the search
+    if id ~= nil and id ~= "" then
+      table.insert(mangas, {
+        title = title,
+        url = BASE_URL .. href,
+        cover = cover,
+        id = id,
+      })
+    end
   end)
 
   return mangas
