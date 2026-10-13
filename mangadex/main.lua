@@ -55,7 +55,58 @@ local function any_title(titles)
   return nil
 end
 
--- TODO: handle more than 100 responses, need to use the offset param
+---@param m table a manga from the api
+---@return Manga
+local function to_manga(m)
+  local coverURL = nil
+  for _, r in ipairs(m.relationships) do
+    if r.type == "cover_art" and r.attributes ~= nil then
+      coverURL = BASE_URL .. "/covers/" .. m.id .. "/" .. r.attributes.fileName
+    end
+  end
+
+  -- the main title isn't always in the same language
+  local titles = m.attributes.title
+  local romaji = titles["ja-ro"]
+  local native = titles.ja
+  for _, alt in ipairs(m.attributes.altTitles) do
+    romaji = romaji or alt["ja-ro"]
+    native = native or alt.ja
+  end
+  local mangaTitle = titles.en or romaji or native or any_title(titles)
+
+  local tags, genres = {}, {}
+  for _, tag in ipairs(m.attributes.tags) do
+    local name = tag.attributes.name.en
+    if name ~= nil then
+      if tag.attributes.group == "genre" then
+        table.insert(genres, name)
+      else
+        table.insert(tags, name)
+      end
+    end
+  end
+
+  return {
+    title = mangaTitle,
+    url = BASE_URL .. "/title/" .. m.id,
+    cover = coverURL,
+    id = m.id,
+    metadata = {
+      english_title = titles.en,
+      romaji_title = romaji,
+      native_title = native,
+      summary = m.attributes.description.en,
+      publication_status = STATUSES[m.attributes.status],
+      genre_list = genres,
+      tag_list = tags,
+    },
+  }
+end
+
+-- mangadex answers at most 100 per request and offset + limit can't go over 10000
+local MAX_SEARCH_RESULTS = 500
+
 ---@param query string
 ---@return Manga[]
 function SearchMangas(query)
@@ -67,56 +118,16 @@ function SearchMangas(query)
   params:set("includes[]", "cover_art")
   add_content_ratings(params)
 
-  local json = get_json(BASE_API_URL .. "/manga?" .. params:string())
-
   local mangas = {}
-  for _, m in ipairs(json.data) do
-    local coverURL = nil
-    for _, r in ipairs(m.relationships) do
-      if r.type == "cover_art" and r.attributes ~= nil then
-        coverURL = BASE_URL .. "/covers/" .. m.id .. "/" .. r.attributes.fileName
-      end
+  local offset = 0
+  repeat
+    params:set("offset", offset)
+    local json = get_json(BASE_API_URL .. "/manga?" .. params:string())
+    for _, m in ipairs(json.data) do
+      table.insert(mangas, to_manga(m))
     end
-
-    -- the main title isn't always in the same language
-    local titles = m.attributes.title
-    local romaji = titles["ja-ro"]
-    local native = titles.ja
-    for _, alt in ipairs(m.attributes.altTitles) do
-      romaji = romaji or alt["ja-ro"]
-      native = native or alt.ja
-    end
-    local mangaTitle = titles.en or romaji or native or any_title(titles)
-
-    local tags, genres = {}, {}
-    for _, tag in ipairs(m.attributes.tags) do
-      local name = tag.attributes.name.en
-      if name ~= nil then
-        if tag.attributes.group == "genre" then
-          table.insert(genres, name)
-        else
-          table.insert(tags, name)
-        end
-      end
-    end
-
-    local manga = {
-      title = mangaTitle,
-      url = BASE_URL .. "/title/" .. m.id,
-      cover = coverURL,
-      id = m.id,
-      metadata = {
-        english_title = titles.en,
-        romaji_title = romaji,
-        native_title = native,
-        summary = m.attributes.description.en,
-        publication_status = STATUSES[m.attributes.status],
-        genre_list = genres,
-        tag_list = tags,
-      },
-    }
-    table.insert(mangas, manga)
-  end
+    offset = offset + json.limit
+  until #json.data == 0 or offset >= json.total or offset >= MAX_SEARCH_RESULTS
 
   return mangas
 end
