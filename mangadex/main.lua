@@ -129,14 +129,22 @@ function MangaVolumes(manga)
 
   local json = get_json(BASE_API_URL .. "/manga/" .. manga.id .. "/aggregate?" .. params:string())
 
+  -- the label is sent back as is to get the chapters, e.g. "01" isn't the same as "1";
+  -- anything else in the table can be passed down and will only be seen by this script
   local noneVolume = nil
   local volumes = {}
+  local unnumbered = {}
+  local latest = 0
   for _, v in pairs(json.volumes) do
-    if v.volume ~= "none" then
-      table.insert(volumes, { number = tonumber(v.volume) })
+    local number = tonumber(v.volume)
+    if v.volume == "none" then
+      noneVolume = { number = 0, label = v.volume }
+    elseif number == nil then
+      -- e.g. "Special"
+      table.insert(unnumbered, v.volume)
     else
-      -- anything else can be passed down and will only be seen by this script
-      noneVolume = { number = 0, none = true }
+      latest = math.max(latest, number)
+      table.insert(volumes, { number = number, label = v.volume })
     end
   end
 
@@ -144,6 +152,12 @@ function MangaVolumes(manga)
   table.sort(volumes, function(a, b)
     return a.number < b.number
   end)
+
+  -- labels that aren't numbers go after the numbered ones
+  table.sort(unnumbered)
+  for i, label in ipairs(unnumbered) do
+    table.insert(volumes, { number = math.floor(latest) + i, label = label })
+  end
 
   -- Add the "un-volumed" at the end
   if noneVolume ~= nil then
@@ -189,13 +203,9 @@ end
 ---@param volume Volume
 ---@return Chapter[]
 function VolumeChapters(volume)
-  local volumeNumber = "none"
-  if not volume.none then
-    volumeNumber = volume.number
-  end
   local params = sdk.urls.values()
   params:set("manga", volume.manga.id)
-  params:set("volume[]", volumeNumber)
+  params:set("volume[]", volume.label)
   params:set("limit", 100)
   params:set("translatedLanguage[]", LANG)
   params:set("order[chapter]", "asc")
