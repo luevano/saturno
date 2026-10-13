@@ -80,6 +80,25 @@ function SearchMangas(query)
   return mangas
 end
 
+---@param id string
+---@return Manga?
+function MangaByID(id)
+  local url = BASE_URL .. "/series/" .. sdk.urls.path_escape(id)
+  -- a missing series is a 404, which luaprovider takes as no manga
+  local main = get_html(url):find("main"):first()
+  local title = sdk.strings.trim_space(main:find("h1"):first():text())
+  if title == "" then
+    return nil
+  end
+
+  return {
+    title = title,
+    url = url,
+    cover = main:find("picture img"):first():attr_or("src", ""),
+    id = id,
+  }
+end
+
 ---@param manga Manga
 ---@return Volume[]
 function MangaVolumes(manga)

@@ -132,6 +132,20 @@ function SearchMangas(query)
   return mangas
 end
 
+---@param id string
+---@return Manga?
+function MangaByID(id)
+  -- anything else is a 400, not a missing manga
+  if not id:match("^%x+%-%x+%-%x+%-%x+%-%x+$") then
+    return nil
+  end
+  local params = sdk.urls.values()
+  params:set("includes[]", "cover_art")
+  -- a missing manga is a 404, which luaprovider takes as no manga
+  local json = get_json(BASE_API_URL .. "/manga/" .. id .. "?" .. params:string())
+  return to_manga(json.data)
+end
+
 ---@param manga Manga
 ---@return Volume[]
 function MangaVolumes(manga)
