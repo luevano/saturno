@@ -9,6 +9,12 @@ A collection of lua scripts for [luaprovider](https://github.com/luevano/luaprov
 
 **Note**: This is a fork of [mangalorg/saturno](https://github.com/mangalorg/saturno).
 
+> **Warning**
+>
+> Providers are code: mangal runs these scripts with your network access (including `localhost`
+> and your LAN). luaprovider gives them no file or shell access, but only install provider
+> bundles you trust, and review changes before updating.
+
 ## Providers
 
 Currently, all providers are already implemented in [mangoprovider](https://github.com/luevano/mangoprovider) (and included in [mangal](https://github.com/luevano/mangal)), where the Mangadex provider has more features. Use these providers as examples for creating new quick providers.
