@@ -75,7 +75,6 @@ function MangaVolumes(manga)
   return {
     {
       number = 1,
-      manga_url = manga.url,
     },
   }
 end
@@ -83,7 +82,7 @@ end
 ---@param volume Volume
 ---@return Chapter[]
 function VolumeChapters(volume)
-  local html = get_html(volume.manga_url)
+  local html = get_html(volume.manga.url)
 
   local chapters = {}
 
