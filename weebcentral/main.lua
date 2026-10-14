@@ -13,6 +13,12 @@ local http = sdk.http
 
 local BASE_URL = "https://weebcentral.com"
 
+-- 1 request every 2 seconds to the site (not the image hosts), like keiyoushi's
+-- src/en/weebcentral/WeebCentral.kt; older luaprovider versions can't limit
+if http.rate_limit then
+  http.rate_limit(1, 2, "weebcentral.com")
+end
+
 -- luaprovider sends its user agent by default
 ---@param url string
 ---@return table

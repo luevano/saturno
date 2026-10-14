@@ -18,6 +18,13 @@ local BASE_API_URL = "https://api.mangadex.org"
 -- mangadex blocks spoofed user agents (e.g. a browser one), so not the default one
 local USER_AGENT = "saturno (+https://github.com/luevano/saturno)"
 
+-- api limits per IP (https://api.mangadex.org/docs/2-limitations/): ~5 requests per second,
+-- and 40 per minute to /at-home/server; older luaprovider versions can't limit
+if http.rate_limit then
+  http.rate_limit(5, 1, "api.mangadex.org")
+  http.rate_limit(40, 60, "api.mangadex.org/at-home/")
+end
+
 local STATUSES = {
   ongoing = "RELEASING",
   completed = "FINISHED",
