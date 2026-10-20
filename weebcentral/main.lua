@@ -94,7 +94,8 @@ function MangaByID(id)
   local main = get_html(url):find("main"):first()
   local title = sdk.strings.trim_space(main:find("h1"):first():text())
   if title == "" then
-    return nil
+    -- a 200 without the series (a challenge or error page) is a failure, not a missing manga
+    error("series " .. id .. ": no title in the page")
   end
 
   return {
