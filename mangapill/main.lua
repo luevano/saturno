@@ -96,7 +96,7 @@ function VolumeChapters(volume)
       title = title,
       url = BASE_URL .. href,
       number = number,
-      -- mangapill doesn't provide dates let luaprovider generate today's date
+      -- mangapill has no chapter dates
       date = "",
       scanlation_group = "Mangapill",
     }
